@@ -1,9 +1,9 @@
 name: Streamer
 
 on:
-  workflow_dispatch: # Manual trigger from GitHub UI
+  workflow_dispatch:
   schedule:
-    - cron: '0 * * * *' # Runs every hour
+    - cron: '0 * * * *'
   push:
     branches:
       - main
@@ -15,10 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install FFmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+      # Install FFmpeg පියවර ඉවත් කළා, මොකද ඒක දැනටමත් runner එකේ තියෙනවා.
 
       - name: Validate secrets
         run: |
@@ -46,3 +43,4 @@ jobs:
       - name: Notify on failure
         if: failure()
         run: echo "Streaming failed. Check logs for details."
+        
