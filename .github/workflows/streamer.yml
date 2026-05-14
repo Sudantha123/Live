@@ -1,20 +1,36 @@
 name: Streamer
 
 on:
-  workflow_dispatch: # මෙතනින් තමයි පළමු වතාවට අතින් start කරන්නේ
-  workflow_run:
-    workflows: ["Starter"] # Starter එක ඉවර වුණ ගමන් මේක පටන් ගන්නවා
-    types:
-      - completed
+  workflow_dispatch: # Manual trigger from GitHub UI
+  schedule:
+    - cron: '0 * * * *' # Runs every hour
+  push:
+    branches:
+      - main
 
 jobs:
   run-stream:
     runs-on: ubuntu-latest
-    # Starter එක fail වුණත් stream එක පටන් ගන්න මේ කොන්දේසිය දාන්න පුළුවන්
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Install FFmpeg
-        run: sudo apt update && sudo apt install -y ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.RTMP_URL }}" ]; then
+            echo "ERROR: RTMP_URL secret is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.M3U8_URL }}" ]; then
+            echo "ERROR: M3U8_URL secret is not set"
+            exit 1
+          fi
+          echo "✓ All secrets are configured"
 
       - name: Start Streaming
         env:
@@ -26,4 +42,7 @@ jobs:
           -c:v libx264 -preset ultrafast -b:v 2000k -maxrate 2000k -bufsize 4000k \
           -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k \
           -f flv "$RTMP_URL"
-          
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Streaming failed. Check logs for details."
