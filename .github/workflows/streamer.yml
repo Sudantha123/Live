@@ -2,36 +2,24 @@ name: Streamer
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 * * * *'
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["Starter"]
+    types:
+      - completed
 
 jobs:
   run-stream:
     runs-on: ubuntu-latest
+    # Starter එක සාර්ථක වුණොත් හෝ අපි අතින් පටන් ගත්තොත් පමණක් වැඩ කරයි
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # මෙන්න මේක පාවිච්චි කරන්න, මේක apt-get වලට වඩා ගොඩක් වේගවත්
       - name: Setup FFmpeg
         uses: FedericoCarboni/setup-ffmpeg@v3
         with:
-          ffmpeg-version: release
-
-      - name: Validate secrets
-        run: |
-          if [ -z "${{ secrets.RTMP_URL }}" ]; then
-            echo "ERROR: RTMP_URL secret is not set"
-            exit 1
-          fi
-          if [ -z "${{ secrets.M3U8_URL }}" ]; then
-            echo "ERROR: M3U8_URL secret is not set"
-            exit 1
-          fi
-          echo "✓ All secrets are configured"
+          ffmpeg-version: '6.0'
 
       - name: Start Streaming
         env:
@@ -39,7 +27,7 @@ jobs:
           M3U8_URL: ${{ secrets.M3U8_URL }}
         run: |
           ffmpeg -re -i "$M3U8_URL" \
-          -vf "split[v1][v2];[v1]scale=480:854:force_original_aspect_ratio=increase,crop=480:854,boxblur=10:5[bg];[v2]scale=480:-1[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" \
+          -vf "scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:black" \
           -c:v libx264 -preset ultrafast -b:v 2000k -maxrate 2000k -bufsize 4000k \
           -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k \
           -f flv "$RTMP_URL"
