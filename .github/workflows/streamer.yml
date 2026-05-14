@@ -15,7 +15,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Install FFmpeg පියවර ඉවත් කළා, මොකද ඒක දැනටමත් runner එකේ තියෙනවා.
+      # මෙන්න මේක පාවිච්චි කරන්න, මේක apt-get වලට වඩා ගොඩක් වේගවත්
+      - name: Setup FFmpeg
+        uses: FedericoCarboni/setup-ffmpeg@v3
+        with:
+          ffmpeg-version: release
 
       - name: Validate secrets
         run: |
