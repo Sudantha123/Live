@@ -10,7 +10,7 @@ on:
 jobs:
   run-stream:
     runs-on: ubuntu-latest
-    # Starter එක සාර්ථක වුණොත් හෝ අපි අතින් පටන් ගත්තොත් පමණක් වැඩ කරයි
+    # Starter එක සාර්ථක වුණොත් හෝ අපි අතින් පටන් ගත්තොත් පමණක් පණගැන්වේ
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout code
@@ -20,6 +20,11 @@ jobs:
         uses: FedericoCarboni/setup-ffmpeg@v3
         with:
           ffmpeg-version: '6.0'
+
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.RTMP_URL }}" ]; then echo "ERROR: RTMP_URL not set"; exit 1; fi
+          if [ -z "${{ secrets.M3U8_URL }}" ]; then echo "ERROR: M3U8_URL not set"; exit 1; fi
 
       - name: Start Streaming
         env:
@@ -34,5 +39,5 @@ jobs:
 
       - name: Notify on failure
         if: failure()
-        run: echo "Streaming failed. Check logs for details."
+        run: echo "Streaming failed."
         
