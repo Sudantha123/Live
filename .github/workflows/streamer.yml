@@ -1,0 +1,29 @@
+name: Streamer
+
+on:
+  workflow_dispatch: # මෙතනින් තමයි පළමු වතාවට අතින් start කරන්නේ
+  workflow_run:
+    workflows: ["Starter"] # Starter එක ඉවර වුණ ගමන් මේක පටන් ගන්නවා
+    types:
+      - completed
+
+jobs:
+  run-stream:
+    runs-on: ubuntu-latest
+    # Starter එක fail වුණත් stream එක පටන් ගන්න මේ කොන්දේසිය දාන්න පුළුවන්
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Install FFmpeg
+        run: sudo apt update && sudo apt install -y ffmpeg
+
+      - name: Start Streaming
+        env:
+          RTMP_URL: ${{ secrets.RTMP_URL }}
+          M3U8_URL: ${{ secrets.M3U8_URL }}
+        run: |
+          ffmpeg -re -i "$M3U8_URL" \
+          -vf "split[v1][v2];[v1]scale=480:854:force_original_aspect_ratio=increase,crop=480:854,boxblur=10:5[bg];[v2]scale=480:-1[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2" \
+          -c:v libx264 -preset ultrafast -b:v 2000k -maxrate 2000k -bufsize 4000k \
+          -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k \
+          -f flv "$RTMP_URL"
+          
